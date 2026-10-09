@@ -1,0 +1,17 @@
+name = "normalForms"
+version = "0.1.0"
+defaultTargets = ["NormalForms"]
+
+[leanOptions]
+pp.unicode.fun = true
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.29.0-rc4"
+
+[[lean_lib]]
+name = "NormalForms"
