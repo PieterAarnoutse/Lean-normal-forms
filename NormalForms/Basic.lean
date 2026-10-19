@@ -249,14 +249,14 @@ notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
 Returns `none` on the empty list, since this syntax has no bottom constant. -/
 def bigDisj : List (Formula α) → Option (Formula α)
   | []      => none
-  | φ :: Γ  => some (Γ.foldr Formula.disj φ)
+  | φ :: Γ  => some (Γ.foldl Formula.disj φ)
 
 /-- Iterated conjunction of a list of formulas.
 
 Returns `none` on the empty list, since this syntax has no top constant. -/
 def bigConj : List (Formula α) → Option (Formula α)
   | []      => none
-  | φ :: Γ  => some (Γ.foldr Formula.conj φ)
+  | φ :: Γ  => some (Γ.foldl Formula.conj φ)
 
 /-- Iterated conjunction of a finite set of formulas in canonical sorted order. -/
 def bigConjFinset [LinearOrder α] (Γ : Finset (Formula α)) : Option (Formula α) :=
@@ -337,10 +337,10 @@ lemma bigDisj_nil : (bigDisj ([] : List (Formula α))) = none := rfl
 
 @[simp]
 lemma bigConj_cons (φ : Formula α) (Γ : List (Formula α)) :
-    bigConj (φ :: Γ) = some (Γ.foldr Formula.conj φ) := rfl
+    bigConj (φ :: Γ) = some (Γ.foldl Formula.conj φ) := rfl
 
 @[simp]
 lemma bigDisj_cons (φ : Formula α) (Γ : List (Formula α)) :
-    bigDisj (φ :: Γ) = some (Γ.foldr Formula.disj φ) := rfl
+    bigDisj (φ :: Γ) = some (Γ.foldl Formula.disj φ) := rfl
 
 end Formula
