@@ -39,7 +39,7 @@ Being reduced, full or maximal does not by itself prove canonicality. Agree rule
 
 ## Checkpoints
 
-- [ ] Build the project and run the [code guide's example](code.md).
+- [x] Build the project and run the [code guide's example](code.md).
 - [ ] Agree representations that preserve order, brackets and repetitions by default.
 - [ ] Define the normal-form types and conversions back to formulas. Prove that the resulting formulas have the promised shape.
 - [ ] Implement conversions with explicit rule assumptions. Prove termination, preservation of occurring atoms, and that suitable conversions undo each other (round trips).
@@ -49,8 +49,10 @@ Being reduced, full or maximal does not by itself prove canonicality. Agree rule
 
 ## First improvements
 
-- [ ] Isolate the current finite-set representation (`Finset`): it loses order and repeated literals/clauses.
+- [~] Isolate the current finite-set representation (`Finset`): it loses order and repeated literals/clauses.
+    - Changed Finset to List.
 - [ ] Repair finite folds: `[a, b, c]` currently becomes `b ∧ (c ∧ a)`. Check disjunction and finite-set versions too.
+    - I believe this is fixed by using Lists, but checking is needed.
 - [ ] Add examples for empty collections, repeated literals, `p ∧ ¬p`, `p ∨ ¬p`, and round trips. Handle empty `U` and empty output explicitly.
 - [ ] Profile clause combinations and sorting; compare lists/arrays with finite sets.
 - [ ] Review `closedUnion` and the unused `dnfMeasure` (see the code guide). Correct stale comments and reduce duplicated proofs.

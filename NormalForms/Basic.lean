@@ -22,6 +22,8 @@ universe u
 inductive Formula (α : Type u) where
   /-- An atomic formula. -/
   | var  : α → Formula α
+  /-- bot -/
+  | bot : Formula α
   /-- Negation. -/
   | neg  : Formula α → Formula α
   /-- Conjunction. -/
@@ -51,6 +53,7 @@ private def tokAtom (a : α) : Token α := Sum.inr a
 token lists gives a constructive structural order once the atoms are linearly ordered. -/
 private def lexCode : Formula α → List (Token α)
   | var a    => [tokTag 0, tokAtom a]
+  | bot      => [tokTag 4]
   | neg φ    => tokTag 1 :: lexCode φ
   | conj φ ψ => tokTag 2 :: lexCode φ ++ lexCode ψ
   | disj φ ψ => tokTag 3 :: lexCode φ ++ lexCode ψ
@@ -61,6 +64,7 @@ def orderCode : Formula α → List (Nat ⊕ₗ α) :=
 
 private def codeLength : Formula α → Nat
   | var _    => 2
+  | bot      => 1
   | neg φ    => codeLength φ + 1
   | conj φ ψ => codeLength φ + codeLength ψ + 1
   | disj φ ψ => codeLength φ + codeLength ψ + 1
@@ -69,6 +73,8 @@ private def codeLength : Formula α → Nat
     (lexCode φ).length = codeLength φ := by
   induction φ with
   | var a =>
+      simp [lexCode, codeLength]
+  | bot   =>
       simp [lexCode, codeLength]
   | neg φ ih =>
       simp [lexCode, codeLength, ih]
@@ -94,7 +100,8 @@ private def decodeAux : Nat → List (Token α) → Option (Formula α × List (
       let (φ, rest') <- decodeAux n rest
       let (ψ, rest'') <- decodeAux n rest'
       pure (disj φ ψ, rest'')
-  | _ + 1, Sum.inl (_ + 4) :: _ => none
+  | _ + 1, Sum.inl 4 :: rest => some (bot, rest)
+  | _ + 1, Sum.inl (_ + 5) :: _ => none
 
 private def decode (xs : List (Token α)) : Option (Formula α × List (Token α)) :=
   decodeAux xs.length xs
@@ -109,6 +116,12 @@ private lemma decodeAux_encode_append (fuel : Nat) (φ : Formula α) (rest : Lis
           cases h
       | succ fuel =>
           simp [lexCode, decodeAux, tokTag, tokAtom]
+  | bot =>
+      cases fuel with
+      | zero =>
+          simp [codeLength] at h
+      | succ fuel =>
+          simp [lexCode, decodeAux, tokTag]
   | neg φ ih =>
       cases fuel with
       | zero =>
@@ -162,6 +175,7 @@ instance [LinearOrder α] : LinearOrder (Formula α) :=
 
 private def toStringAux [ToString α] : Formula α → String
   | var a    => "p_" ++ toString a
+  | bot      => "⊥"
   | neg φ    => "¬" ++ toStringAux φ
   | conj φ ψ => "(" ++ toStringAux φ ++ " ∧ " ++ toStringAux ψ ++ ")"
   | disj φ ψ => "(" ++ toStringAux φ ++ " ∨ " ++ toStringAux ψ ++ ")"
@@ -189,6 +203,7 @@ instance [ToString α] [LinearOrder α] : ToString (Finset (Formula α)) where
 with repetitions preserved and ordered by recursive traversal. -/
 def varsList : Formula α → List α
   | var a    => [a]
+  | bot      => []
   | neg φ    => varsList φ
   | conj φ ψ => varsList φ ++ varsList ψ
   | disj φ ψ => varsList φ ++ varsList ψ
@@ -203,6 +218,7 @@ with repetitions preserved and ordered by recursive traversal.
 By convention, a formula counts as a subformula of itself. -/
 def subformulaList : Formula α → List (Formula α)
   | var a    => [var a]
+  | bot      => []
   | neg φ    => neg φ :: subformulaList φ
   | conj φ ψ => conj φ ψ :: (subformulaList φ ++ subformulaList ψ)
   | disj φ ψ => disj φ ψ :: (subformulaList φ ++ subformulaList ψ)
@@ -214,6 +230,7 @@ def subformulas [DecidableEq α] (φ : Formula α) : Finset (Formula α) :=
 /-- The syntactic complexity of a formula. -/
 def complexity : Formula α → Nat
   | var _    => 0
+  | bot      => 0
   | neg φ    => complexity φ + 1
   | conj φ ψ => max (complexity φ) (complexity ψ) + 1
   | disj φ ψ => max (complexity φ) (complexity ψ) + 1
@@ -238,6 +255,7 @@ def inductionOnComplexity {P : Formula α → Prop} (φ : Formula α)
 /-- Substitution of `θ` for the variable `i` in a formula. -/
 def subst [DecidableEq α] : Formula α → α → Formula α → Formula α
   | var j,    i, θ => if j = i then θ else var j
+  | bot,      i, θ => bot
   | neg φ,    i, θ => neg (subst φ i θ)
   | conj φ ψ, i, θ => conj (subst φ i θ) (subst ψ i θ)
   | disj φ ψ, i, θ => disj (subst φ i θ) (subst ψ i θ)
@@ -247,6 +265,10 @@ notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
 /-- Iterated disjunction of a list of formulas.
 
 Returns `none` on the empty list, since this syntax has no bottom constant. -/
+def bigDisjCons : Formula α → List (Formula α) → Formula α
+  | φ, []   => φ
+  | φ, ψ :: ψs => Formula.conj φ (bigDisjCons ψ ψs)
+
 def bigDisj : List (Formula α) → Option (Formula α)
   | []      => none
   | φ :: Γ  => some (Γ.foldr Formula.disj φ)
@@ -254,9 +276,15 @@ def bigDisj : List (Formula α) → Option (Formula α)
 /-- Iterated conjunction of a list of formulas.
 
 Returns `none` on the empty list, since this syntax has no top constant. -/
+def bigConjCons : Formula α → List (Formula α) → Formula α
+  | φ, []   => φ
+  | φ, ψ :: ψs => Formula.conj φ (bigConjCons ψ ψs)
+
 def bigConj : List (Formula α) → Option (Formula α)
   | []      => none
-  | φ :: Γ  => some (Γ.foldr Formula.conj φ)
+  | φ :: Γ  => some (bigConjCons φ Γ)
+
+#eval bigConj [(var 1), (var 2), (var 3)]
 
 /-- Iterated conjunction of a finite set of formulas in canonical sorted order. -/
 def bigConjFinset [LinearOrder α] (Γ : Finset (Formula α)) : Option (Formula α) :=
@@ -337,7 +365,7 @@ lemma bigDisj_nil : (bigDisj ([] : List (Formula α))) = none := rfl
 
 @[simp]
 lemma bigConj_cons (φ : Formula α) (Γ : List (Formula α)) :
-    bigConj (φ :: Γ) = some (Γ.foldr Formula.conj φ) := rfl
+    bigConj (φ :: Γ) = some (bigConjCons φ Γ) := rfl
 
 @[simp]
 lemma bigDisj_cons (φ : Formula α) (Γ : List (Formula α)) :
