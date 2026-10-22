@@ -161,7 +161,7 @@ instance [LinearOrder α] : LinearOrder (Formula α) :=
   LinearOrder.lift' lexCode lexCode_injective
 
 private def toStringAux [ToString α] : Formula α → String
-  | var a    => "p_" ++ toString a
+  | var a    => toString a
   | neg φ    => "¬" ++ toStringAux φ
   | conj φ ψ => "(" ++ toStringAux φ ++ " ∧ " ++ toStringAux ψ ++ ")"
   | disj φ ψ => "(" ++ toStringAux φ ++ " ∨ " ++ toStringAux ψ ++ ")"
