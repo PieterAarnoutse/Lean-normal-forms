@@ -26,7 +26,7 @@ inductive Formula (α : Type u) where
   /-- Disjunction. -/
   | disj : Formula α → Formula α → Formula α
   /-- Implication. -/
-  | impl : Formula α → Formula α → Formula α
+  | imp : Formula α → Formula α → Formula α
   /-- Bi-implication. -/
   | iff : Formula α → Formula α → Formula α
   deriving DecidableEq, Ord
@@ -48,7 +48,7 @@ infixr:35 " ∧ " => conj
 /-- Notation for disjunction of formulas. -/
 infixr:30 " ∨ " => disj
 /-- Notation for implication of formulas. -/
-infixr:25 " → " => impl
+infixr:25 " → " => imp
 /-- Notation for bi-implication of formulas. -/
 infixr:20 " ↔ " => iff
 
@@ -57,7 +57,7 @@ private def toStringAux [ToString α] : Formula α → String
   | neg φ    => "¬" ++ toStringAux φ
   | conj φ ψ => "(" ++ toStringAux φ ++ " ∧ " ++ toStringAux ψ ++ ")"
   | disj φ ψ => "(" ++ toStringAux φ ++ " ∨ " ++ toStringAux ψ ++ ")"
-  | impl φ ψ => "(" ++ toStringAux φ ++ " → " ++ toStringAux ψ ++ ")"
+  | imp φ ψ => "(" ++ toStringAux φ ++ " → " ++ toStringAux ψ ++ ")"
   | iff φ ψ => "(" ++ toStringAux φ ++ " ↔ " ++ toStringAux ψ ++ ")"
 
 instance [ToString α] : Repr (Formula α) where
@@ -75,7 +75,7 @@ def varsList : Formula α → List α
   | neg φ    => varsList φ
   | conj φ ψ => varsList φ ++ varsList ψ
   | disj φ ψ => varsList φ ++ varsList ψ
-  | impl φ ψ => varsList φ ++ varsList ψ
+  | imp φ ψ => varsList φ ++ varsList ψ
   | iff φ ψ => varsList φ ++ varsList ψ
 
 /-- `vars φ` is the finite set of propositional variables occurring in `φ`. -/
@@ -91,7 +91,7 @@ def subformulaList : Formula α → List (Formula α)
   | neg φ    => neg φ :: subformulaList φ
   | conj φ ψ => conj φ ψ :: (subformulaList φ ++ subformulaList ψ)
   | disj φ ψ => disj φ ψ :: (subformulaList φ ++ subformulaList ψ)
-  | impl φ ψ => impl φ ψ :: (subformulaList φ ++ subformulaList ψ)
+  | imp φ ψ => imp φ ψ :: (subformulaList φ ++ subformulaList ψ)
   | iff φ ψ => iff φ ψ :: (subformulaList φ ++ subformulaList ψ)
 
 /-- `subformulas φ` is the finite set of subformulas of `φ`. -/
@@ -104,7 +104,7 @@ def complexity : Formula α → Nat
   | neg φ    => complexity φ + 1
   | conj φ ψ => max (complexity φ) (complexity ψ) + 1
   | disj φ ψ => max (complexity φ) (complexity ψ) + 1
-  | impl φ ψ => max (complexity φ) (complexity ψ) + 1
+  | imp φ ψ => max (complexity φ) (complexity ψ) + 1
   | iff φ ψ => max (complexity φ) (complexity ψ) + 1
 
 /-- Notation for the syntactic complexity of a formula. -/
@@ -130,7 +130,7 @@ def subst [DecidableEq α] : Formula α → α → Formula α → Formula α
   | neg φ,    i, θ => neg (subst φ i θ)
   | conj φ ψ, i, θ => conj (subst φ i θ) (subst ψ i θ)
   | disj φ ψ, i, θ => disj (subst φ i θ) (subst ψ i θ)
-  | impl φ ψ, i, θ => impl (subst φ i θ) (subst ψ i θ)
+  | imp φ ψ, i, θ => imp (subst φ i θ) (subst ψ i θ)
   | iff φ ψ, i, θ => iff (subst φ i θ) (subst ψ i θ)
 
 notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
@@ -143,7 +143,7 @@ notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
     varsList (φ ∧ ψ) = varsList φ ++ varsList ψ := rfl
 @[simp] lemma varsList_disj (φ ψ : Formula α) :
     varsList (φ ∨ ψ) = varsList φ ++ varsList ψ := rfl
-@[simp] lemma varsList_impl (φ ψ : Formula α) :
+@[simp] lemma varsList_imp (φ ψ : Formula α) :
     varsList (φ → ψ) = varsList φ ++ varsList ψ := rfl
 @[simp] lemma varsList_iff (φ ψ : Formula α) :
     varsList (φ ↔ ψ) = varsList φ ++ varsList ψ := rfl
@@ -155,7 +155,7 @@ notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
     subformulaList (φ ∧ ψ) = (φ ∧ ψ) :: (subformulaList φ ++ subformulaList ψ) := rfl
 @[simp] lemma subformulaList_disj (φ ψ : Formula α) :
     subformulaList (φ ∨ ψ) = (φ ∨ ψ) :: (subformulaList φ ++ subformulaList ψ) := rfl
-@[simp] lemma subformulaList_impl (φ ψ : Formula α) :
+@[simp] lemma subformulaList_imp (φ ψ : Formula α) :
     subformulaList (φ → ψ) = (φ → ψ) :: (subformulaList φ ++ subformulaList ψ) := rfl
 @[simp] lemma subformulaList_iff (φ ψ : Formula α) :
     subformulaList (φ ↔ ψ) = (φ ↔ ψ) :: (subformulaList φ ++ subformulaList ψ) := rfl
@@ -166,7 +166,7 @@ notation:90 φ "[" i " := " ψ "]" => subst φ i ψ
     c(φ ∧ ψ) = max (c(φ)) (c(ψ)) + 1 := rfl
 @[simp] lemma complexity_disj (φ ψ : Formula α) :
     c(φ ∨ ψ) = max (c(φ)) (c(ψ)) + 1 := rfl
-@[simp] lemma complexity_impl (φ ψ : Formula α) :
+@[simp] lemma complexity_imp (φ ψ : Formula α) :
     c(φ → ψ) = max (c(φ)) (c(ψ)) + 1 := rfl
 @[simp] lemma complexity_iff (φ ψ : Formula α) :
     c(φ ↔ ψ) = max (c(φ)) (c(ψ)) + 1 := rfl
@@ -197,7 +197,7 @@ lemma subst_disj [DecidableEq α] (φ ψ θ : Formula α) (i : α) :
   rfl
 
 @[simp]
-lemma subst_impl [DecidableEq α] (φ ψ θ : Formula α) (i : α) :
+lemma subst_imp [DecidableEq α] (φ ψ θ : Formula α) (i : α) :
     (φ → ψ)[i := θ] = (φ[i := θ] → ψ[i := θ]) := by
   rfl
 

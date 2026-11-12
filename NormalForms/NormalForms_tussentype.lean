@@ -188,35 +188,63 @@ def toDNF : (φ : NNF α) → DNF α
 
 end NNF
 
+
+--  NAFormula type
+
+private inductive NAFormula (α : Type u) where
+  | var  : α → NAFormula α
+  | neg  : NAFormula α → NAFormula α
+  | conj : NAFormula α → NAFormula α → NAFormula α
+  | disj : NAFormula α → NAFormula α → NAFormula α
+
+namespace NAFormula
+
+private def toFormula : NAFormula α → Formula α
+  | .var a    => Formula.var a
+  | .neg φ    => Formula.neg (toFormula φ)
+  | .conj φ ψ => Formula.conj (toFormula φ) (toFormula ψ)
+  | .disj φ ψ => Formula.disj (toFormula φ) (toFormula ψ)
+
+private instance : Coe (NAFormula α) (Formula α) := ⟨toFormula⟩
+
+private def toStringAux [ToString α] : NAFormula α → String
+  | .var a    => toString a
+  | .neg φ    => "¬" ++ toStringAux φ
+  | .conj φ ψ => "(" ++ toStringAux φ ++ " ∧ " ++ toStringAux ψ ++ ")"
+  | .disj φ ψ => "(" ++ toStringAux φ ++ " ∨ " ++ toStringAux ψ ++ ")"
+
+private instance [ToString α] : ToString (NAFormula α) where
+  toString φ := toStringAux φ
+
+private def toNNF : NAFormula α → NNF α
+  | var a           => NNF.lit (Lit.pos a)
+  | neg (var a)     => NNF.lit (Lit.neg a)
+  | neg (neg ψ)     => toNNF ψ
+  | conj ψ χ        => NNF.conj (toNNF ψ) (toNNF χ)
+  | disj ψ χ        => NNF.disj (toNNF ψ) (toNNF χ)
+  | neg (conj ψ χ)  => NNF.disj (toNNF (neg ψ)) (toNNF (neg χ))
+  | neg (disj ψ χ)  => NNF.conj (toNNF (neg ψ)) (toNNF (neg χ))
+
+end NAFormula
+
 -- Functions
 
 namespace Formula
 
-mutual
-  def toNNF : Formula α → NNF α
-    | var a    => NNF.lit (Lit.pos a)
-    | neg φ    => toNNFNeg φ
-    | conj ψ χ => NNF.conj (toNNF ψ) (toNNF χ)
-    | disj ψ χ => NNF.disj (toNNF ψ) (toNNF χ)
-    | impl ψ χ => NNF.disj (toNNFNeg ψ) (toNNF χ)
-    | iff ψ χ  =>
-        NNF.conj
-          (NNF.disj (toNNFNeg ψ) (toNNF χ))
-          (NNF.disj (toNNFNeg χ) (toNNF ψ))
-
-  private def toNNFNeg : Formula α → NNF α
-    | var a    => NNF.lit (Lit.neg a)
-    | neg φ    => toNNF φ
-    | conj ψ χ => NNF.disj (toNNFNeg ψ) (toNNFNeg χ)
-    | disj ψ χ => NNF.conj (toNNFNeg ψ) (toNNFNeg χ)
-    | impl ψ χ => NNF.conj (toNNF ψ) (toNNFNeg χ)
-    | iff ψ χ  =>
-        NNF.disj
-          (NNF.conj (toNNF ψ) (toNNFNeg χ))
-          (NNF.conj (toNNF χ) (toNNFNeg ψ))
-end
+private def toNAFormula : Formula α → NAFormula α
+  | .var a    => NAFormula.var a
+  | .neg φ    => NAFormula.neg (toNAFormula φ)
+  | .conj φ ψ => NAFormula.conj (toNAFormula φ) (toNAFormula ψ)
+  | .disj φ ψ => NAFormula.disj (toNAFormula φ) (toNAFormula ψ)
+  | .imp φ ψ => NAFormula.disj (NAFormula.neg (toNAFormula φ)) (toNAFormula ψ)
+  | .iff φ ψ  =>
+      NAFormula.conj
+        (NAFormula.disj (NAFormula.neg (toNAFormula φ)) (toNAFormula ψ))
+        (NAFormula.disj (NAFormula.neg (toNAFormula ψ)) (toNAFormula φ))
 
 
+def toNNF (φ : Formula α) : NNF α :=
+  NAFormula.toNNF (toNAFormula φ)
 
 def toCNF (φ : Formula α) : CNF α :=
   NNF.toCNF (toNNF φ)
@@ -226,28 +254,31 @@ def toDNF (φ : Formula α) : DNF α :=
 
   -- Lemmata
 
-@[simp] lemma toNNF_var (a : α) : toNNF (var a) = NNF.lit (Lit.pos a) := by simp [toNNF]
+@[simp] lemma toNNF_var (a : α) : toNNF (var a) = NNF.lit (Lit.pos a)
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_neg (a : α) : toNNF (neg (var a)) = NNF.lit (Lit.neg a)
-  := by simp [toNNF, toNNFNeg]
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_negneg (φ : Formula α) : toNNF (neg (neg φ)) = toNNF φ
-  := by simp [toNNF, toNNFNeg]
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_conj (ψ χ : Formula α) : toNNF (conj ψ χ) = NNF.conj (toNNF ψ) (toNNF χ)
-  := by simp [toNNF]
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_disj (ψ χ : Formula α) : toNNF (disj ψ χ) = NNF.disj (toNNF ψ) (toNNF χ)
-  := by simp [toNNF]
-@[simp] lemma toNNF_impl (ψ χ : Formula α) : toNNF (impl ψ χ) = NNF.disj (toNNFNeg ψ) (toNNF χ)
-  := by simp [toNNF]
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
+@[simp] lemma toNNF_imp (ψ χ : Formula α) : toNNF (imp ψ χ) = NNF.disj (toNNF (neg ψ)) (toNNF χ)
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_iff (ψ χ : Formula α) : toNNF (iff ψ χ) =
-  NNF.conj (NNF.disj (toNNFNeg ψ) (toNNF χ)) (NNF.disj (toNNFNeg χ) (toNNF ψ)) := by simp [toNNF]
+  NNF.conj (NNF.disj (toNNF (neg ψ)) (toNNF χ)) (NNF.disj (toNNF (neg χ)) (toNNF ψ))
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_negconj (ψ χ : Formula α) : toNNF (neg (conj ψ χ)) =
-  NNF.disj (toNNF (neg ψ)) (toNNF (neg χ)) := by simp [toNNF, toNNFNeg]
+  NNF.disj (toNNF (neg ψ)) (toNNF (neg χ)) := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_negdisj (ψ χ : Formula α) : toNNF (neg (disj ψ χ)) =
-  NNF.conj (toNNF (neg ψ)) (toNNF (neg χ)) := by simp [toNNF, toNNFNeg]
-@[simp] lemma toNNF_negimpl (ψ χ : Formula α) : toNNF (neg (impl ψ χ)) =
-  NNF.conj (toNNF ψ) (toNNF (neg χ)) := by simp [toNNF, toNNFNeg]
+  NNF.conj (toNNF (neg ψ)) (toNNF (neg χ)) := by simp [toNNF, toNAFormula, NAFormula.toNNF]
+@[simp] lemma toNNF_negimp (ψ χ : Formula α) : toNNF (neg (imp ψ χ)) =
+  NNF.conj (toNNF ψ) (toNNF (neg χ)) := by simp [toNNF, toNAFormula, NAFormula.toNNF]
 @[simp] lemma toNNF_negiff (ψ χ : Formula α) : toNNF (neg (iff ψ χ)) =
   NNF.disj (NNF.conj (toNNF ψ) (toNNF (neg χ))) (NNF.conj (toNNF χ) (toNNF (neg ψ)))
-  := by simp [toNNF, toNNFNeg]
+  := by simp [toNNF, toNAFormula, NAFormula.toNNF]
+
 
 @[simp] lemma toCNF_var (a : α) : toCNF (var a) = CNF.disjclause (DC.lit (Lit.pos a))
   := by simp [toCNF, NNF.toCNF]
@@ -257,7 +288,7 @@ def toDNF (φ : Formula α) : DNF α :=
   := by simp [toCNF, NNF.toCNF]
 @[simp] lemma toCNF_disj (ψ χ : Formula α) : toCNF (disj ψ χ) = NNF.toCNF (toNNF (disj ψ χ))
   := by simp [toCNF, NNF.toCNF]
-@[simp] lemma toCNF_impl (ψ χ : Formula α) : toCNF (impl ψ χ) = NNF.toCNF (toNNF (impl ψ χ))
+@[simp] lemma toCNF_imp (ψ χ : Formula α) : toCNF (imp ψ χ) = NNF.toCNF (toNNF (imp ψ χ))
   := by simp [toCNF, NNF.toCNF]
 @[simp] lemma toCNF_iff (ψ χ : Formula α) : toCNF (iff ψ χ) = NNF.toCNF (toNNF (iff ψ χ))
   := by simp [toCNF, NNF.toCNF]
@@ -265,10 +296,11 @@ def toDNF (φ : Formula α) : DNF α :=
   NNF.toCNF (toNNF (neg (conj ψ χ))) := by simp [toCNF, NNF.toCNF]
 @[simp] lemma toCNF_negdisj (ψ χ : Formula α) : toCNF (neg (disj ψ χ)) =
   NNF.toCNF (toNNF (neg (disj ψ χ))) := by simp [toCNF, NNF.toCNF]
-@[simp] lemma toCNF_negimpl (ψ χ : Formula α) : toCNF (neg (impl ψ χ)) =
-  NNF.toCNF (toNNF (neg (impl ψ χ))) := by simp [toCNF, NNF.toCNF]
+@[simp] lemma toCNF_negimp (ψ χ : Formula α) : toCNF (neg (imp ψ χ)) =
+  NNF.toCNF (toNNF (neg (imp ψ χ))) := by simp [toCNF, NNF.toCNF]
 @[simp] lemma toCNF_negiff (ψ χ : Formula α) : toCNF (neg (iff ψ χ)) =
   NNF.toCNF (toNNF (neg (iff ψ χ))) := by simp [toCNF, NNF.toCNF]
+
 
 @[simp] lemma toDNF_var (a : α) : toDNF (var a) = DNF.conjclause (CC.lit (Lit.pos a))
   := by simp [toDNF, NNF.toDNF]
@@ -278,7 +310,7 @@ def toDNF (φ : Formula α) : DNF α :=
   := by simp [toDNF, NNF.toDNF]
 @[simp] lemma toDNF_disj (ψ χ : Formula α) : toDNF (disj ψ χ) = DNF.disj (toDNF ψ) (toDNF χ)
   := by simp [toDNF, NNF.toDNF]
-@[simp] lemma toDNF_impl (ψ χ : Formula α) : toDNF (impl ψ χ) = NNF.toDNF (toNNF (impl ψ χ))
+@[simp] lemma toDNF_imp (ψ χ : Formula α) : toDNF (imp ψ χ) = NNF.toDNF (toNNF (imp ψ χ))
   := by simp [toDNF, NNF.toDNF]
 @[simp] lemma toDNF_iff (ψ χ : Formula α) : toDNF (iff ψ χ) = NNF.toDNF (toNNF (iff ψ χ))
   := by simp [toDNF, NNF.toDNF]
@@ -286,8 +318,8 @@ def toDNF (φ : Formula α) : DNF α :=
   NNF.toDNF (toNNF (neg (conj ψ χ))) := by simp [toDNF, NNF.toDNF]
 @[simp] lemma toDNF_negdisj (ψ χ : Formula α) : toDNF (neg (disj ψ χ)) =
   NNF.toDNF (toNNF (neg (disj ψ χ))) := by simp [toDNF, NNF.toDNF]
-@[simp] lemma toDNF_negimpl (ψ χ : Formula α) : toDNF (neg (impl ψ χ)) =
-  NNF.toDNF (toNNF (neg (impl ψ χ))) := by simp [toDNF, NNF.toDNF]
+@[simp] lemma toDNF_negimp (ψ χ : Formula α) : toDNF (neg (imp ψ χ)) =
+  NNF.toDNF (toNNF (neg (imp ψ χ))) := by simp [toDNF, NNF.toDNF]
 @[simp] lemma toDNF_negiff (ψ χ : Formula α) : toDNF (neg (iff ψ χ)) =
   NNF.toDNF (toNNF (neg (iff ψ χ))) := by simp [toDNF, NNF.toDNF]
 
