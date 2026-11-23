@@ -90,7 +90,7 @@ inductive CNF (α : Type u) where
 
 namespace CNF
 
-private def distributeClause (dc : DC α) : CNF α → CNF α
+def distributeClause (dc : DC α) : CNF α → CNF α
   | .disjclause a => .disjclause (.disj dc a)
   | .conj φ ψ =>
       .conj (distributeClause dc φ) (distributeClause dc ψ)
@@ -125,7 +125,7 @@ inductive DNF (α : Type u) where
 
 namespace DNF
 
-private def distributeClause (cc : CC α) : DNF α → DNF α
+def distributeClause (cc : CC α) : DNF α → DNF α
   | .conjclause a => .conjclause (.conj cc a)
   | .disj φ ψ =>
       .disj (distributeClause cc φ) (distributeClause cc ψ)
@@ -204,7 +204,7 @@ mutual
           (NNF.disj (toNNFNeg ψ) (toNNF χ))
           (NNF.disj (toNNFNeg χ) (toNNF ψ))
 
-  private def toNNFNeg : Formula α → NNF α
+  def toNNFNeg : Formula α → NNF α
     | var a    => NNF.lit (Lit.neg a)
     | neg φ    => toNNF φ
     | conj ψ χ => NNF.disj (toNNFNeg ψ) (toNNFNeg χ)
@@ -239,6 +239,21 @@ def toDNF (φ : Formula α) : DNF α :=
   := by simp [toNNF]
 @[simp] lemma toNNF_iff (ψ χ : Formula α) : toNNF (iff ψ χ) =
   NNF.conj (NNF.disj (toNNFNeg ψ) (toNNF χ)) (NNF.disj (toNNFNeg χ) (toNNF ψ)) := by simp [toNNF]
+@[simp] lemma toNNFNeg_var (a : α) :
+    toNNFNeg (var a) = NNF.lit (Lit.neg a) := by simp [toNNFNeg]
+@[simp] lemma toNNFNeg_neg (ψ : Formula α) :
+    toNNFNeg (neg ψ) = toNNF ψ := by simp [toNNFNeg]
+@[simp] lemma toNNFNeg_conj (ψ χ : Formula α) :
+    toNNFNeg (conj ψ χ) = NNF.disj (toNNFNeg ψ) (toNNFNeg χ) := by simp [toNNFNeg]
+@[simp] lemma toNNFNeg_disj (ψ χ : Formula α) :
+    toNNFNeg (disj ψ χ) = NNF.conj (toNNFNeg ψ) (toNNFNeg χ) := by simp [toNNFNeg]
+@[simp] lemma toNNFNeg_imp (ψ χ : Formula α) :
+    toNNFNeg (imp ψ χ) = NNF.conj (toNNF ψ) (toNNFNeg χ) := by simp [toNNFNeg]
+@[simp] lemma toNNFNeg_iff (ψ χ : Formula α) :
+    toNNFNeg (iff ψ χ) =
+      NNF.disj
+        (NNF.conj (toNNF ψ) (toNNFNeg χ))
+        (NNF.conj (toNNF χ) (toNNFNeg ψ)) := by simp [toNNFNeg]
 @[simp] lemma toNNF_negconj (ψ χ : Formula α) : toNNF (neg (conj ψ χ)) =
   NNF.disj (toNNF (neg ψ)) (toNNF (neg χ)) := by simp [toNNF, toNNFNeg]
 @[simp] lemma toNNF_negdisj (ψ χ : Formula α) : toNNF (neg (disj ψ χ)) =

@@ -1,8 +1,8 @@
 import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Sort
-import Mathlib.Order.Basic
+--import Mathlib.Data.Finset.Sort
+--import Mathlib.Order.Basic
 import Mathlib.Order.WellFounded
-import Mathlib.Data.String.Basic
+--import Mathlib.Data.String.Basic
 
 /-!
 # Propositional syntax

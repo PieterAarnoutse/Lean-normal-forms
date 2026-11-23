@@ -90,7 +90,7 @@ inductive CNF (α : Type u) where
 
 namespace CNF
 
-private def distributeClause (dc : DC α) : CNF α → CNF α
+def distributeClause (dc : DC α) : CNF α → CNF α
   | .disjclause a => .disjclause (.disj dc a)
   | .conj φ ψ =>
       .conj (distributeClause dc φ) (distributeClause dc ψ)
@@ -125,7 +125,7 @@ inductive DNF (α : Type u) where
 
 namespace DNF
 
-private def distributeClause (cc : CC α) : DNF α → DNF α
+def distributeClause (cc : CC α) : DNF α → DNF α
   | .conjclause a => .conjclause (.conj cc a)
   | .disj φ ψ =>
       .disj (distributeClause cc φ) (distributeClause cc ψ)
@@ -191,7 +191,7 @@ end NNF
 
 --  NAFormula type
 
-private inductive NAFormula (α : Type u) where
+inductive NAFormula (α : Type u) where
   | var  : α → NAFormula α
   | neg  : NAFormula α → NAFormula α
   | conj : NAFormula α → NAFormula α → NAFormula α
@@ -199,7 +199,7 @@ private inductive NAFormula (α : Type u) where
 
 namespace NAFormula
 
-private def toFormula : NAFormula α → Formula α
+def toFormula : NAFormula α → Formula α
   | .var a    => Formula.var a
   | .neg φ    => Formula.neg (toFormula φ)
   | .conj φ ψ => Formula.conj (toFormula φ) (toFormula ψ)
@@ -216,7 +216,7 @@ private def toStringAux [ToString α] : NAFormula α → String
 private instance [ToString α] : ToString (NAFormula α) where
   toString φ := toStringAux φ
 
-private def toNNF : NAFormula α → NNF α
+def toNNF : NAFormula α → NNF α
   | var a           => NNF.lit (Lit.pos a)
   | neg (var a)     => NNF.lit (Lit.neg a)
   | neg (neg ψ)     => toNNF ψ
@@ -231,7 +231,7 @@ end NAFormula
 
 namespace Formula
 
-private def toNAFormula : Formula α → NAFormula α
+def toNAFormula : Formula α → NAFormula α
   | .var a    => NAFormula.var a
   | .neg φ    => NAFormula.neg (toNAFormula φ)
   | .conj φ ψ => NAFormula.conj (toNAFormula φ) (toNAFormula ψ)
