@@ -29,202 +29,75 @@ notation "⟦" ϕ " , " v "⟧" => eval ϕ v
 lemma bivalence_one (v : Val α) (ϕ : Formula α) :
     ⟦ ϕ , v ⟧ ≠ true → ⟦ ϕ , v ⟧ = false := by
       intro h
-      rewrite [Bool.eq_false_iff]
-      exact h
+      exact Bool.eq_false_iff.mpr h
 
 @[simp]
 lemma bivalence_two (v : Val α) (ϕ : Formula α) :
     ⟦ ϕ , v ⟧ ≠ false → ⟦ ϕ , v ⟧ = true := by
-      intro h
-      cases h' : ⟦ ϕ , v ⟧ with
-      | true => rfl
-      | false =>
-        exfalso
-        exact h h'
+      exact Bool.ne_false_iff.mp
 
 @[simp]
 lemma neg_true (ϕ : Formula α) (v : Val α) :
     ⟦¬ϕ , v⟧ = true ↔ (⟦ϕ , v⟧ = false) := by
-      constructor
-      · intro h
-        have hneq : ⟦ϕ , v⟧ ≠ true := by
-          intro h'
-          have hneg : ⟦¬ϕ , v⟧ = false := by
-            rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, h']
-            rfl
-          have : (false : Bool) = true := by
-            calc
-              false = ⟦¬ϕ , v⟧ := hneg.symm
-              _ = true := h
-          cases this
-        exact bivalence_one v ϕ hneq
-      · intro hfalse
-        rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, hfalse]
-        rfl
+      rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, Bool.not_eq_true']
 
 @[simp]
 lemma neg_false (ϕ : Formula α) (v : Val α) :
     ⟦¬ϕ , v⟧ = false ↔ (⟦ϕ , v⟧ = true) := by
-      constructor
-      · intro h
-        have hneq : ⟦ϕ , v⟧ ≠ false := by
-          intro h'
-          have hneg : ⟦¬ϕ , v⟧ = true := by
-            rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, h']
-            rfl
-          have : (true : Bool) = false := by
-            calc
-              true = ⟦¬ϕ , v⟧ := hneg.symm
-              _ = false := h
-          cases this
-        exact bivalence_two v ϕ hneq
-      · intro htrue
-        rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, htrue]
-        rfl
+      rw [show ⟦¬ϕ , v⟧ = !(⟦ϕ , v⟧) by rfl, Bool.not_eq_false']
 
 @[simp]
 lemma conj_true (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ∧ ψ , v⟧ = true ↔ (⟦ϕ , v⟧ = true) ∧ (⟦ψ , v⟧ = true) := by
-      constructor
-      · intro h
-        have hϕ : ⟦ϕ , v⟧ = true := by
-          rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl] at h
-          rw [Bool.and_eq_true_iff] at h
-          exact h.1
-        have hψ : ⟦ψ , v⟧ = true := by
-          rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl] at h
-          rw [Bool.and_eq_true_iff] at h
-          exact h.2
-        exact ⟨hϕ, hψ⟩
-      · intro h
-        rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl]
-        exact Bool.and_eq_true_iff.mpr h
+      rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl,
+        Bool.and_eq_true_iff]
 
 @[simp]
 lemma conj_false (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ∧ ψ , v⟧ = false ↔ (⟦ϕ , v⟧ = false) ∨ (⟦ψ , v⟧ = false) := by
-      constructor
-      · intro h
-        rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl] at h
-        rw [Bool.and_eq_false_iff] at h
-        exact h
-      · intro h
-        rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl]
-        exact Bool.and_eq_false_iff.mpr h
+      rw [show ⟦ϕ ∧ ψ , v⟧ = (⟦ϕ , v⟧ && ⟦ψ , v⟧) by rfl,
+        Bool.and_eq_false_iff]
 
 @[simp]
 lemma disj_true (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ∨ ψ , v⟧ = true ↔ (⟦ϕ , v⟧ = true) ∨ (⟦ψ , v⟧ = true) := by
-      constructor
-      · intro h
-        rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl] at h
-        rw [Bool.or_eq_true_iff] at h
-        exact h
-      · intro h
-        rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl]
-        exact Bool.or_eq_true_iff.mpr h
+      rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl,
+        Bool.or_eq_true_iff]
 
 @[simp]
 lemma disj_false (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ∨ ψ , v⟧ = false ↔ (⟦ϕ , v⟧ = false) ∧ (⟦ψ , v⟧ = false) := by
-      constructor
-      · intro h
-        rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl] at h
-        rw [Bool.or_eq_false_iff] at h
-        exact h
-      · intro h
-        rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl]
-        exact Bool.or_eq_false_iff.mpr h
+      rw [show ⟦ϕ ∨ ψ , v⟧ = (⟦ϕ , v⟧ || ⟦ψ , v⟧) by rfl,
+        Bool.or_eq_false_iff]
 
 @[simp]
 lemma imp_true (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ → ψ , v⟧ = true ↔ (⟦ϕ , v⟧ = false) ∨ (⟦ψ , v⟧ = true) := by
-      constructor
-      · intro h
-        rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl] at h
-        rw [Bool.or_eq_true_iff] at h
-        rw [Bool.not_eq_true'] at h
-        exact h
-      · intro h
-        rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl]
-        rw [Bool.or_eq_true_iff]
-        rw [Bool.not_eq_true']
-        exact h
+      rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl,
+        Bool.or_eq_true_iff, Bool.not_eq_true']
 
 @[simp]
 lemma imp_false (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ → ψ , v⟧ = false ↔ (⟦ϕ , v⟧ = true) ∧ (⟦ψ , v⟧ = false) := by
-      constructor
-      · intro h
-        rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl] at h
-        rw [Bool.or_eq_false_iff] at h
-        rw [Bool.not_eq_false'] at h
-        exact h
-      · intro h
-        rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl]
-        rw [Bool.or_eq_false_iff]
-        rw [Bool.not_eq_false']
-        exact h
+      rw [show ⟦ϕ → ψ , v⟧ = (!(⟦ϕ , v⟧) || (⟦ψ , v⟧)) by rfl,
+        Bool.or_eq_false_iff, Bool.not_eq_false']
 
 @[simp]
 lemma iff_true (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ↔ ψ , v⟧ = true ↔ ((⟦ϕ , v⟧ = true) ↔ (⟦ψ , v⟧ = true)) := by
-      rw [show ⟦ϕ ↔ ψ , v⟧ = (⟦ϕ , v⟧ == ⟦ψ , v⟧) by rfl]
-      cases hϕ : ⟦ϕ , v⟧ <;> cases hψ : ⟦ψ , v⟧
-      · constructor
-        · intro _
-          rfl
-        · intro _
-          rfl
-      · constructor
-        · intro h
-          cases h
-        · intro h
-          exact h.2 rfl
-      · constructor
-        · intro h
-          cases h
-        · intro h
-          exact h.1 rfl
-      · constructor
-        · intro _
-          rfl
-        · intro _
-          rfl
+      change (⟦ϕ , v⟧ == ⟦ψ , v⟧) = true ↔ _
+      rw [beq_iff_eq]
+      exact Bool.eq_iff_iff
+
 
 @[simp]
 lemma iff_false (ϕ ψ : Formula α) (v : Val α) :
     ⟦ϕ ↔ ψ , v⟧ = false ↔ ((⟦ϕ , v⟧ = true) ↔ (⟦ψ , v⟧ = false)) := by
-      rw [show ⟦ϕ ↔ ψ , v⟧ = (⟦ϕ , v⟧ == ⟦ψ , v⟧) by rfl]
-      cases hϕ : ⟦ϕ , v⟧ <;> cases hψ : ⟦ψ , v⟧
-      · constructor
-        · intro h
-          cases h
-        · intro h
-          cases h.mpr rfl
-      · constructor
-        · intro _
-          constructor
-          · intro h
-            cases h
-          · intro h
-            cases h
-        · intro _
-          rfl
-      · constructor
-        · intro _
-          constructor
-          · intro _
-            rfl
-          · intro _
-            rfl
-        · intro _
-          rfl
-      · constructor
-        · intro h
-          cases h
-        · intro h
-          exact h.1 rfl
+      change (⟦ϕ , v⟧ == ⟦ψ , v⟧) = false ↔ _
+      rw [beq_eq_false_iff_ne]
+      rw [← Bool.not_eq_true]
+      exact (not_congr Bool.eq_iff_iff).trans
+        (Decidable.not_iff.trans (Decidable.not_iff_comm.trans Iff.comm))
 
 end Val
 
@@ -248,20 +121,15 @@ lemma not_sat_iff_some_false (Γ : Set (Formula α)) : ¬ Sat Γ ↔ ∀ v : Val
       constructor
       · intro h v
         by_contra h'
-        have htrue : ∀ ψ ∈ Γ, ⟦ψ , v⟧ = true := by
-          intro ψ hψ
-          apply Val.bivalence_two v ψ
-          intro hfalse
-          exact h' ⟨ψ, hψ, hfalse⟩
-        have hsat : Sat Γ := ⟨v, htrue⟩
-        exact h hsat
-      · intro h hsat
-        obtain ⟨v, hv⟩ := hsat
-        have h' : ∃ ψ ∈ Γ, ⟦ψ , v⟧ = false := by
-          apply h v
-        obtain ⟨ψ, hψ, hfalse⟩ := h'
-        have : ⟦ψ , v⟧ = true := hv ψ hψ
-        rw [this] at hfalse
+        apply h
+        refine ⟨v, ?_⟩
+        intro ψ hψ
+        apply Val.bivalence_two v ψ
+        intro hfalse
+        exact h' ⟨ψ, hψ, hfalse⟩
+      · intro h ⟨v, hv⟩
+        obtain ⟨ψ, hψ, hfalse⟩ := h v
+        rw [hv ψ hψ] at hfalse
         cases hfalse
 
 
@@ -296,29 +164,26 @@ lemma consequence_iff_not_sat {Γ : Set (Formula α)} :
     ∀ ϕ : Formula α, (Γ ⊨ ϕ) ↔ ¬ Sat (Γ ∪ {¬ϕ}) := by
   intro ϕ
   constructor
-  · intro h hsat
-    obtain ⟨v, hv⟩ := hsat
-    have hΓ : ∀ ψ ∈ Γ, ⟦ψ , v⟧ = true :=
-      fun ψ hψ => hv ψ (Or.inl hψ)
-    have hneg : ⟦¬ϕ , v⟧ = true := hv (¬ϕ) (Or.inr rfl)
-    have htrue : ⟦ϕ , v⟧ = true := h v hΓ
-    have hfalse : ⟦ϕ , v⟧ = false := (Val.neg_true ϕ v).mp hneg
+  · intro h ⟨v, hv⟩
+    have hfalse : ⟦ϕ , v⟧ = false :=
+      (Val.neg_true ϕ v).mp (hv (¬ϕ) (Or.inr rfl))
+    have htrue : ⟦ϕ , v⟧ = true :=
+      h v (fun ψ hψ => hv ψ (Or.inl hψ))
     rw [htrue] at hfalse
     cases hfalse
   · intro h v hΓ
     by_contra hnotϕ
-    have hfalse : ⟦ϕ , v⟧ = false := Val.bivalence_one v ϕ hnotϕ
-    have hneg : ⟦¬ϕ , v⟧ = true := (Val.neg_true ϕ v).mpr hfalse
-    have hsat : Sat (Γ ∪ {¬ϕ}) := by
-      apply Exists.intro v
-      intro ψ hψ
-      cases hψ with
-      | inl hmem => exact hΓ ψ hmem
-      | inr hmem =>
-        change ψ = Formula.neg ϕ at hmem
-        rw [hmem]
-        exact hneg
-    exact h hsat
+    have hneg : ⟦¬ϕ , v⟧ = true :=
+      (Val.neg_true ϕ v).mpr (Val.bivalence_one v ϕ hnotϕ)
+    apply h
+    refine ⟨v, ?_⟩
+    intro ψ hψ
+    cases hψ with
+    | inl hmem => exact hΓ ψ hmem
+    | inr hmem =>
+      change ψ = Formula.neg ϕ at hmem
+      rw [hmem]
+      exact hneg
 
 @[simp]
 lemma non_consequence_iff_sat {Γ : Set (Formula α)} (ϕ : Formula α) :
@@ -409,12 +274,8 @@ lemma disj_intro_right {Γ : Set (Formula α)} {ϕ ψ : Formula α}
 lemma disj_elim {Γ Δ Ξ : Set (Formula α)} {ϕ ψ χ : Formula α}
   (h : Γ ⊨ (ϕ ∨ ψ)) (g : (Δ ∪ {ϕ}) ⊨ χ) (f : (Ξ ∪ {ψ}) ⊨ χ) : ((Γ ∪ Δ ∪ Ξ) ⊨ χ) := by
   intro v hAll
-  have hΓ : ∀ θ ∈ Γ, ⟦θ , v⟧ = true := by
-    intro θ hθ
-    exact hAll θ (Or.inl (Or.inl hθ))
-  have hdisj : ⟦ϕ , v⟧ = true ∨ ⟦ψ , v⟧ = true :=
-    (Val.disj_true ϕ ψ v).mp (h v hΓ)
-  cases hdisj with
+  cases (Val.disj_true ϕ ψ v).mp
+      (h v (fun θ hθ => hAll θ (Or.inl (Or.inl hθ)))) with
   | inl hϕ =>
     apply g v
     intro θ hθ
@@ -422,7 +283,7 @@ lemma disj_elim {Γ Δ Ξ : Set (Formula α)} {ϕ ψ χ : Formula α}
     | inl hθΔ => exact hAll θ (Or.inl (Or.inr hθΔ))
     | inr hθϕ =>
       change θ = ϕ at hθϕ
-      rw [hθϕ]
+      subst θ
       exact hϕ
   | inr hψ =>
     apply f v
@@ -431,7 +292,7 @@ lemma disj_elim {Γ Δ Ξ : Set (Formula α)} {ϕ ψ χ : Formula α}
     | inl hθΞ => exact hAll θ (Or.inr hθΞ)
     | inr hθψ =>
       change θ = ψ at hθψ
-      rw [hθψ]
+      subst θ
       exact hψ
 
 
